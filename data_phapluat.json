@@ -1,1 +1,20 @@
-[]
+{
+  "vanBan": [
+    {
+      "so_ky_hieu": "59/2020/QH14",
+      "loai_vb": "Luật Doanh nghiệp",
+      "co_quan": "\tQuốc hội",
+      "ngay_ban_hanh": "2020-06-17",
+      "ngay_hieu_luc": "2021-01-01",
+      "ngay_nhan": "2021-01-01",
+      "nguoi_ky": "Nguyễn Thị Kim Ngân",
+      "trich_yeu": "Luật Doanh nghiệp",
+      "links": [
+        "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/07/59.signed.pdf",
+        "https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/07/59tiep.pdf"
+      ]
+    }
+  ],
+  "hoiDap": [],
+  "bieuMau": []
+}

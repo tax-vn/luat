@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra Cứu Pháp Luật & Biểu Mẫu</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .app-header { background: linear-gradient(135deg, #198754, #20c997); color: white; padding: 1.5rem 0; margin-bottom: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .table-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .table-responsive { max-height: 70vh; overflow-y: auto; }
+        .table thead th { position: sticky; top: 0; background-color: #212529; color: white; z-index: 1; white-space: nowrap; vertical-align: middle; }
+        .table td { vertical-align: middle; white-space: normal; font-size: 0.9em; }
+        .table td.min-wrap { white-space: nowrap; }
+        .action-btns .btn { margin-right: 5px; margin-bottom: 5px; }
+        
+        /* Summary Row */
+        .summary-row { background-color: #fff3cd !important; font-weight: bold; position: sticky; bottom: 0; z-index: 1; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .summary-row td { border-top: 2px solid #ffc107; }
+        
+        #syncStatus { font-weight: bold; margin-left: 10px; }
+        
+        /* Overlay Loading */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10000; display: none; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
+        
+        .truncate-link { display: inline-block; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+        .link-item { transition: all 0.2s ease-in-out; }
+        
+        /* Nav Tabs Styling */
+        .nav-tabs .nav-link { font-weight: bold; color: #495057; border-radius: 8px 8px 0 0; padding: 12px 20px; font-size: 1.1em; }
+        .nav-tabs .nav-link.active { color: #198754; border-bottom-color: transparent; }
+        .tab-content { background: transparent; }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay">
+        <div class="spinner-border text-success" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h4 class="mt-3 text-success fw-bold" id="loadingText">Đang xử lý...</h4>
+    </div>
+
+    <header class="app-header">
+        <div class="container-fluid d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="mb-0 fw-bold"><i class="fas fa-gavel me-2"></i> Tra Cứu Pháp Luật & Biểu Mẫu</h2>
+            <div>
+                <span id="syncStatus" class="badge bg-secondary fs-6 me-2"><i class="fas fa-cloud-slash"></i> Chưa cấu hình</span>
+                <button class="btn btn-light btn-sm fw-bold shadow-sm" onclick="openConfigModal()">
+                    <i class="fas fa-cog"></i> Cài Đặt Cloud
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid px-4">
+        <!-- Tabs Nav -->
+        <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="vb-tab" data-bs-toggle="tab" data-bs-target="#vb-pane" type="button" role="tab" aria-selected="true">
+                <i class="fas fa-book-open me-2"></i>Văn Bản Quy Phạm Pháp Luật
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="hoidap-tab" data-bs-toggle="tab" data-bs-target="#hoidap-pane" type="button" role="tab" aria-selected="false">
+                <i class="fas fa-comments me-2 text-warning"></i>Hỏi Đáp Thuế - Phí
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="bieumau-tab" data-bs-toggle="tab" data-bs-target="#bieumau-pane" type="button" role="tab" aria-selected="false">
+                <i class="fas fa-file-excel me-2 text-success"></i>Biểu Mẫu & Link Tải
+            </button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- TAB 1: VĂN BẢN QPPL -->
+            <div class="tab-pane fade show active" id="vb-pane" role="tabpanel" tabindex="0">
+                <div class="row mb-3">
+                    <div class="col-md-8 d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <button class="btn btn-success shadow-sm" onclick="openModalVB()"><i class="fas fa-plus me-1"></i> Thêm Văn Bản</button>
+                        <button class="btn btn-info text-white shadow-sm" onclick="manualSync()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
+                        <button class="btn btn-outline-secondary shadow-sm" onclick="exportData()"><i class="fas fa-download me-1"></i> Backup (JSON)</button>
+                        <label class="btn btn-outline-warning mb-0 text-dark fw-bold shadow-sm">
+                            <i class="fas fa-upload me-1"></i> Import Data
+                            <input type="file" accept=".json" style="display: none;" onchange="importData(event)">
+                        </label>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="searchInputVB" class="form-control border-start-0" placeholder="Tìm kiếm văn bản..." onkeyup="renderTableVB()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container table-responsive">
+                    <table class="table table-hover table-bordered" id="dataTableVB">
+                        <thead>
+                            <tr>
+                                <th width="50" class="text-center">STT</th>
+                                <th class="min-wrap">Số Ký Hiệu</th>
+                                <th class="min-wrap">Ngày Ban Hành</th>
+                                <th class="min-wrap">Ngày Hiệu Lực</th>
+                                <th>Loại Văn Bản</th>
+                                <th>Cơ Quan Ban Hành</th>
+                                <th>Người Ký</th>
+                                <th class="min-wrap">Ngày Nhận</th>
+                                <th style="min-width: 250px;">Trích Yếu</th>
+                                <th>Link Đính Kèm</th>
+                                <th width="90" class="text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBodyVB">
+                            <tr><td colspan="11" class="text-center py-4 text-muted">Vui lòng đợi tải dữ liệu...</td></tr>
+                        </tbody>
+                        <tfoot id="tableFootVB" style="display: none;">
+                            <tr class="summary-row">
+                                <td class="text-center"><strong>Tổng:</strong></td>
+                                <td id="totalRowsVB" class="text-danger fs-5 fw-bold text-center">0</td>
+                                <td colspan="9"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 2: HỎI ĐÁP -->
+            <div class="tab-pane fade" id="hoidap-pane" role="tabpanel" tabindex="0">
+                <div class="row mb-3">
+                    <div class="col-md-8 d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <button class="btn btn-warning shadow-sm fw-bold text-dark" onclick="openModalHD()"><i class="fas fa-plus me-1"></i> Thêm Hỏi Đáp Mới</button>
+                        <button class="btn btn-info text-white shadow-sm" onclick="manualSync()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="searchInputHD" class="form-control border-start-0" placeholder="Tìm kiếm hỏi đáp..." onkeyup="renderTableHD()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container table-responsive">
+                    <table class="table table-hover table-bordered" id="dataTableHD">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="50" class="text-center">STT</th>
+                                <th class="min-wrap">Ngày Tháng</th>
+                                <th class="min-wrap">Phân Loại</th>
+                                <th style="min-width: 250px;">Nội Dung Câu Hỏi</th>
+                                <th style="min-width: 300px;">Nội Dung Trả Lời</th>
+                                <th style="min-width: 200px;">Căn Cứ Pháp Lý</th>
+                                <th>Link Đính Kèm</th>
+                                <th width="90" class="text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBodyHD">
+                            <tr><td colspan="8" class="text-center py-4 text-muted">Vui lòng đợi tải dữ liệu...</td></tr>
+                        </tbody>
+                        <tfoot id="tableFootHD" style="display: none;">
+                            <tr class="summary-row">
+                                <td class="text-center"><strong>Tổng:</strong></td>
+                                <td id="totalRowsHD" class="text-danger fs-5 fw-bold text-center">0</td>
+                                <td colspan="6"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 3: BIỂU MẪU & LINK TẢI -->
+            <div class="tab-pane fade" id="bieumau-pane" role="tabpanel" tabindex="0">
+                <div class="row mb-3">
+                    <div class="col-md-8 d-flex flex-wrap gap-2 mb-2 align-items-center">
+                        <button class="btn btn-primary shadow-sm fw-bold" onclick="openModalBM()"><i class="fas fa-plus me-1"></i> Thêm Biểu Mẫu Mới</button>
+                        <button class="btn btn-info text-white shadow-sm" onclick="manualSync()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="searchInputBM" class="form-control border-start-0" placeholder="Tìm kiếm biểu mẫu..." onkeyup="renderTableBM()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container table-responsive">
+                    <table class="table table-hover table-bordered" id="dataTableBM">
+                        <thead class="table-primary">
+                            <tr>
+                                <th width="50" class="text-center">STT</th>
+                                <th class="min-wrap">Ký Hiệu / Số</th>
+                                <th style="min-width: 250px;">Tên Biểu Mẫu</th>
+                                <th>Phân Loại</th>
+                                <th style="min-width: 200px;">Căn Cứ Ban Hành</th>
+                                <th style="min-width: 200px;">Ghi Chú</th>
+                                <th>Link Tải / Xem</th>
+                                <th width="90" class="text-center">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBodyBM">
+                            <tr><td colspan="8" class="text-center py-4 text-muted">Vui lòng đợi tải dữ liệu...</td></tr>
+                        </tbody>
+                        <tfoot id="tableFootBM" style="display: none;">
+                            <tr class="summary-row">
+                                <td class="text-center"><strong>Tổng:</strong></td>
+                                <td id="totalRowsBM" class="text-danger fs-5 fw-bold text-center">0</td>
+                                <td colspan="6"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form (VĂN BẢN) -->
+    <div class="modal fade" id="formModalVB" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title fw-bold" id="modalTitleVB"><i class="fas fa-edit me-2"></i> Thêm Văn Bản Mới</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body bg-light">
+            <form id="dataFormVB">
+                <input type="hidden" id="editIndexVB" value="-1">
+                <div class="row bg-white p-3 rounded shadow-sm mb-3">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-semibold">Số Ký Hiệu <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="f_so_ky_hieu" required placeholder="Ví dụ: 123/QĐ-UBND">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-semibold">Loại Văn Bản</label>
+                        <input type="text" class="form-control" id="f_loai_vb">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-semibold">Cơ Quan Ban Hành</label>
+                        <input type="text" class="form-control" id="f_co_quan">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">Ngày Ban Hành</label>
+                        <input type="date" class="form-control" id="f_ngay_ban_hanh">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">Ngày Có Hiệu Lực</label>
+                        <input type="date" class="form-control" id="f_ngay_hieu_luc">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-semibold">Ngày Nhận</label>
+                        <input type="date" class="form-control" id="f_ngay_nhan">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-semibold">Người Ký</label>
+                        <input type="text" class="form-control" id="f_nguoi_ky">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-semibold">Trích Yếu</label>
+                        <textarea class="form-control" id="f_trich_yeu" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="row bg-white p-3 rounded shadow-sm mb-3">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                        <h6 class="text-success mb-0">Tài Liệu Đính Kèm</h6>
+                        <button type="button" class="btn btn-sm btn-outline-success" onclick="addLinkInputVB()"><i class="fas fa-plus me-1"></i>Thêm Link</button>
+                    </div>
+                    <div class="col-md-12" id="linksContainerVB"></div>
+                </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="button" class="btn btn-success" onclick="saveFormVB()"><i class="fas fa-save me-1"></i> Lưu Văn Bản</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Form (HỎI ĐÁP) -->
+    <div class="modal fade" id="formModalHD" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+              <h5 class="modal-title fw-bold" id="modalTitleHD"><i class="fas fa-edit me-2"></i> Thêm Hỏi Đáp Mới</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+              <form id="dataFormHD">
+                  <input type="hidden" id="editIndexHD" value="-1">
+                  <div class="row bg-white p-3 rounded shadow-sm mb-3">
+                      <div class="col-md-6 mb-3">
+                          <label class="form-label fw-semibold">Ngày Tháng</label>
+                          <input type="date" class="form-control" id="hd_ngay">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                          <label class="form-label fw-semibold">Phân Loại</label>
+                          <select class="form-select" id="hd_phan_loai">
+                              <option value="Thuế">Thuế</option>
+                              <option value="Phí">Phí</option>
+                              <option value="Lệ Phí">Lệ Phí</option>
+                              <option value="Khác">Khác</option>
+                          </select>
+                      </div>
+                      <div class="col-md-12 mb-3">
+                          <label class="form-label fw-semibold text-primary">Nội Dung Câu Hỏi <span class="text-danger">*</span></label>
+                          <textarea class="form-control" id="hd_cau_hoi" rows="3" required></textarea>
+                      </div>
+                      <div class="col-md-12 mb-3">
+                          <label class="form-label fw-semibold text-success">Nội Dung Trả Lời / Giải Quyết</label>
+                          <textarea class="form-control" id="hd_tra_loi" rows="4"></textarea>
+                      </div>
+                      <div class="col-md-12 mb-3">
+                          <label class="form-label fw-semibold text-danger">Căn Cứ Pháp Lý</label>
+                          <textarea class="form-control" id="hd_can_cu" rows="2"></textarea>
+                      </div>
+                  </div>
+                  <div class="row bg-white p-3 rounded shadow-sm mb-3">
+                      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                          <h6 class="text-warning text-dark mb-0 fw-bold">Tài Liệu Đính Kèm (Link)</h6>
+                          <button type="button" class="btn btn-sm btn-outline-dark" onclick="addLinkInputHD()"><i class="fas fa-plus me-1"></i>Thêm Link</button>
+                      </div>
+                      <div class="col-md-12" id="linksContainerHD"></div>
+                  </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+              <button type="button" class="btn btn-warning fw-bold text-dark" onclick="saveFormHD()"><i class="fas fa-save me-1"></i> Lưu Hỏi Đáp</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Modal Form (BIỂU MẪU) -->
+    <div class="modal fade" id="formModalBM" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title fw-bold" id="modalTitleBM"><i class="fas fa-edit me-2"></i> Thêm Biểu Mẫu Mới</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+              <form id="dataFormBM">
+                  <input type="hidden" id="editIndexBM" value="-1">
+                  <div class="row bg-white p-3 rounded shadow-sm mb-3">
+                      <div class="col-md-3 mb-3">
+                          <label class="form-label fw-semibold">Ký Hiệu / Số</label>
+                          <input type="text" class="form-control" id="bm_ma" placeholder="VD: 01/GTGT">
+                      </div>
+                      <div class="col-md-6 mb-3">
+                          <label class="form-label fw-semibold text-primary">Tên Biểu Mẫu <span class="text-danger">*</span></label>
+                          <input type="text" class="form-control" id="bm_ten" required placeholder="Tên gọi của biểu mẫu...">
+                      </div>
+                      <div class="col-md-3 mb-3">
+                          <label class="form-label fw-semibold">Phân Loại</label>
+                          <select class="form-select" id="bm_loai">
+                              <option value="Thuế">Thuế</option>
+                              <option value="Kế Toán">Kế Toán</option>
+                              <option value="Nhân Sự">Nhân Sự</option>
+                              <option value="Hành Chính">Hành Chính</option>
+                              <option value="Khác">Khác</option>
+                          </select>
+                      </div>
+                      <div class="col-md-12 mb-3">
+                          <label class="form-label fw-semibold">Căn Cứ Ban Hành</label>
+                          <textarea class="form-control" id="bm_cancu" rows="2" placeholder="Biểu mẫu ban hành kèm theo Thông tư / Nghị định nào..."></textarea>
+                      </div>
+                      <div class="col-md-12 mb-3">
+                          <label class="form-label fw-semibold">Ghi Chú</label>
+                          <textarea class="form-control" id="bm_ghichu" rows="2" placeholder="Các lưu ý khi sử dụng biểu mẫu này..."></textarea>
+                      </div>
+                  </div>
+                  <div class="row bg-white p-3 rounded shadow-sm mb-3">
+                      <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                          <h6 class="text-primary mb-0 fw-bold">Link Tải / Link Xem Hồ Sơ</h6>
+                          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addLinkInputBM()"><i class="fas fa-plus me-1"></i>Thêm Link</button>
+                      </div>
+                      <div class="col-md-12" id="linksContainerBM"></div>
+                  </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+              <button type="button" class="btn btn-primary fw-bold" onclick="saveFormBM()"><i class="fas fa-save me-1"></i> Lưu Biểu Mẫu</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Modal Config GitHub -->
+    <div class="modal fade" id="configModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+              <h5 class="modal-title fw-bold"><i class="fab fa-github me-2"></i> Cài Đặt Kết Nối Cloud</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2" style="font-size: 0.9em;">
+                    <i class="fas fa-info-circle me-1"></i> Cấu hình được lưu an toàn trên trình duyệt máy tính của bạn.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tên Tài Khoản (Owner) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="gh_owner" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tên Repo <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="gh_repo" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Personal Access Token (PAT) <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="gh_token" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Tên File Dữ Liệu</label>
+                    <input type="text" class="form-control bg-light" id="gh_file" value="data_phapluat.json" readonly>
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+              <button type="button" class="btn btn-primary" onclick="saveConfig()"><i class="fas fa-check me-1"></i> Lưu & Tải Dữ Liệu</button>
+            </div>
+          </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Data States
+        let appData = []; // Văn Bản
+        let appDataHoiDap = []; // Hỏi Đáp
+        let appDataBieuMau = []; // Biểu Mẫu
+        
+        let modalVB, modalHD, modalBM, configModal;
+        let ghConfig = { owner: '', repo: '', token: '', path: 'data_phapluat.json', sha: '' };
+
+        window.onload = function() {
+            modalVB = new bootstrap.Modal(document.getElementById('formModalVB'));
+            modalHD = new bootstrap.Modal(document.getElementById('formModalHD'));
+            modalBM = new bootstrap.Modal(document.getElementById('formModalBM'));
+            configModal = new bootstrap.Modal(document.getElementById('configModal'));
+            
+            loadConfigFromLocal();
+            if (ghConfig.token && ghConfig.owner && ghConfig.repo) {
+                fetchDataFromGithub();
+            } else {
+                setStatus("missing");
+                renderTableVB(); renderTableHD(); renderTableBM();
+            }
+        };
+
+        function showLoading(text = "Đang đồng bộ...") {
+            document.getElementById('loadingText').innerText = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+
+        function setStatus(status) {
+            const el = document.getElementById('syncStatus');
+            el.className = 'badge fs-6 ';
+            if (status === 'success') {
+                el.classList.add('bg-success'); el.innerHTML = '<i class="fas fa-check-circle"></i> Đã đồng bộ';
+            } else if (status === 'error') {
+                el.classList.add('bg-danger'); el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi đồng bộ';
+            } else if (status === 'missing') {
+                el.classList.add('bg-secondary'); el.innerHTML = '<i class="fas fa-cloud-slash"></i> Chưa cấu hình';
+            } else if (status === 'syncing') {
+                el.classList.add('bg-info', 'text-dark'); el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
+            }
+        }
+
+        function removeVietnameseTones(str) {
+            if (!str) return '';
+            return str.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        }
+
+        function formatDateDisplay(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; 
+            return dateStr;
+        }
+
+        // Add Dynamic Link Inputs
+        function addLinkInput(containerId, inputClass, value = '') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2 link-item';
+            div.innerHTML = `
+                <span class="input-group-text"><i class="fas fa-link"></i></span>
+                <input type="url" class="form-control ${inputClass}" placeholder="https://..." value="${value}">
+                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()" title="Xóa link"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+        function addLinkInputVB(val='') { addLinkInput('linksContainerVB', 'link-input-vb', val); }
+        function addLinkInputHD(val='') { addLinkInput('linksContainerHD', 'link-input-hd', val); }
+        function addLinkInputBM(val='') { addLinkInput('linksContainerBM', 'link-input-bm', val); }
+
+        function loadConfigFromLocal() {
+            const saved = localStorage.getItem('ghSyncConfigPhapLuat');
+            if (saved) { ghConfig = { ...ghConfig, ...JSON.parse(saved) }; }
+            document.getElementById('gh_owner').value = ghConfig.owner;
+            document.getElementById('gh_repo').value = ghConfig.repo;
+            document.getElementById('gh_token').value = ghConfig.token;
+        }
+
+        function openConfigModal() { loadConfigFromLocal(); configModal.show(); }
+
+        function saveConfig() {
+            const owner = document.getElementById('gh_owner').value.trim();
+            const repo = document.getElementById('gh_repo').value.trim();
+            const token = document.getElementById('gh_token').value.trim();
+
+            if (!owner || !repo || !token) { alert("Vui lòng điền đủ Tên tài khoản, Repo và Token!"); return; }
+
+            ghConfig.owner = owner; ghConfig.repo = repo; ghConfig.token = token;
+            localStorage.setItem('ghSyncConfigPhapLuat', JSON.stringify({ owner, repo, token }));
+            configModal.hide(); fetchDataFromGithub();
+        }
+
+        async function fetchDataFromGithub() {
+            setStatus("syncing"); showLoading("Đang lấy dữ liệu từ Cloud...");
+            const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
+            try {
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' },
+                    cache: 'no-store'
+                });
+
+                if (response.status === 404) {
+                    if (confirm("File dữ liệu chưa tồn tại! Khởi tạo file trống mới?")) {
+                        appData = []; appDataHoiDap = []; appDataBieuMau = [];
+                        await pushDataToGithub("Khởi tạo file dữ liệu", true);
+                    } else {
+                        hideLoading(); setStatus("error"); renderTableVB(); renderTableHD(); renderTableBM();
+                    }
+                    return;
+                }
+                if (!response.ok) throw new Error(`Mã lỗi: ${response.status}`);
+
+                const data = await response.json();
+                ghConfig.sha = data.sha; 
+                const decodedText = decodeURIComponent(escape(atob(data.content)));
+                const parsedData = JSON.parse(decodedText);
+                
+                if (Array.isArray(parsedData)) {
+                    appData = parsedData; appDataHoiDap = []; appDataBieuMau = [];
+                } else {
+                    appData = parsedData.vanBan || [];
+                    appDataHoiDap = parsedData.hoiDap || [];
+                    appDataBieuMau = parsedData.bieuMau || [];
+                }
+                
+                setStatus("success");
+                renderTableVB(); renderTableHD(); renderTableBM();
+            } catch (error) {
+                console.error(error); setStatus("error"); alert("Lỗi tải dữ liệu: " + error.message);
+                renderTableVB(); renderTableHD(); renderTableBM();
+            } finally { hideLoading(); }
+        }
+
+        async function pushDataToGithub(commitMessage = "Cập nhật dữ liệu", isNewFile = false) {
+            setStatus("syncing"); showLoading("Đang lưu dữ liệu lên Cloud...");
+            const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
+            
+            const payload = { vanBan: appData, hoiDap: appDataHoiDap, bieuMau: appDataBieuMau };
+            const contentStr = JSON.stringify(payload, null, 2);
+            const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
+
+            const body = { message: commitMessage, content: encodedContent };
+            if (!isNewFile && ghConfig.sha) body.sha = ghConfig.sha;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!response.ok) throw new Error(`Lỗi cập nhật (Mã lỗi: ${response.status})`);
+                const responseData = await response.json();
+                ghConfig.sha = responseData.content.sha;
+                setStatus("success");
+            } catch (error) {
+                console.error(error); setStatus("error"); alert("Lỗi lưu dữ liệu: " + error.message);
+            } finally { hideLoading(); }
+        }
+
+        function manualSync() {
+            if (!ghConfig.token) { alert("Vui lòng cấu hình Cloud trước!"); openConfigModal(); return; }
+            fetchDataFromGithub();
+        }
+
+        // --- RENDER TABLES ---
+        function generateLinksHtml(links) {
+            if (!links || links.length === 0) return '';
+            return links.map(l => `<a href="${l}" target="_blank" class="d-block truncate-link text-decoration-none mb-1"><i class="fas fa-external-link-alt me-1"></i>Mở Link</a>`).join('');
+        }
+
+        function renderTableGeneric(dataArray, searchInputId, tbodyId, tfootId, countId, renderRowFn) {
+            const tbody = document.getElementById(tbodyId);
+            const tfoot = document.getElementById(tfootId);
+            tbody.innerHTML = '';
+            
+            const rawSearch = document.getElementById(searchInputId).value.trim();
+            const searchTerm = removeVietnameseTones(rawSearch.toLowerCase());
+            
+            if(dataArray.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="12" class="text-center text-danger fw-bold py-4">Chưa có dữ liệu.</td></tr>`;
+                 tfoot.style.display = 'none'; return;
+            }
+
+            let visibleCount = 0;
+            dataArray.forEach((row, index) => {
+                if (renderRowFn(row, index, searchTerm, visibleCount + 1)) {
+                    visibleCount++;
+                }
+            });
+            
+            tfoot.style.display = 'table-footer-group';
+            document.getElementById(countId).innerText = visibleCount;
+            if (visibleCount === 0) tbody.innerHTML = `<tr><td colspan="12" class="text-center py-4">Không tìm thấy kết quả phù hợp.</td></tr>`;
+        }
+
+        function renderTableVB() {
+            renderTableGeneric(appData, 'searchInputVB', 'tableBodyVB', 'tableFootVB', 'totalRowsVB', (row, index, searchTerm, stt) => {
+                const searchStr = removeVietnameseTones([row.so_ky_hieu, formatDateDisplay(row.ngay_ban_hanh), row.loai_vb, row.co_quan, row.nguoi_ky, row.trich_yeu, ...(row.links || [])].join(' ').toLowerCase());
+                if (searchTerm && !searchStr.includes(searchTerm)) return false;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center fw-bold text-secondary">${stt}</td>
+                    <td class="fw-bold text-primary">${row.so_ky_hieu || ''}</td>
+                    <td>${formatDateDisplay(row.ngay_ban_hanh)}</td>
+                    <td>${formatDateDisplay(row.ngay_hieu_luc)}</td>
+                    <td><span class="badge bg-light text-dark border">${row.loai_vb || ''}</span></td>
+                    <td>${row.co_quan || ''}</td>
+                    <td>${row.nguoi_ky || ''}</td>
+                    <td>${formatDateDisplay(row.ngay_nhan)}</td>
+                    <td>${row.trich_yeu || ''}</td>
+                    <td>${generateLinksHtml(row.links)}</td>
+                    <td class="text-center action-btns">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editDataVB(${index})"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDataVB(${index})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                document.getElementById('tableBodyVB').appendChild(tr);
+                return true;
+            });
+        }
+
+        function renderTableHD() {
+            renderTableGeneric(appDataHoiDap, 'searchInputHD', 'tableBodyHD', 'tableFootHD', 'totalRowsHD', (row, index, searchTerm, stt) => {
+                const searchStr = removeVietnameseTones([formatDateDisplay(row.ngay), row.phan_loai, row.cau_hoi, row.tra_loi, row.can_cu, ...(row.links || [])].join(' ').toLowerCase());
+                if (searchTerm && !searchStr.includes(searchTerm)) return false;
+
+                let badgeColor = "bg-secondary";
+                if(row.phan_loai === "Thuế") badgeColor = "bg-danger";
+                else if(row.phan_loai === "Phí") badgeColor = "bg-primary";
+                else if(row.phan_loai === "Lệ Phí") badgeColor = "bg-info text-dark";
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center fw-bold text-secondary">${stt}</td>
+                    <td class="fw-bold">${formatDateDisplay(row.ngay)}</td>
+                    <td><span class="badge ${badgeColor}">${row.phan_loai || 'Khác'}</span></td>
+                    <td class="text-primary fw-semibold">${(row.cau_hoi || '').replace(/\n/g, '<br>')}</td>
+                    <td>${(row.tra_loi || '').replace(/\n/g, '<br>')}</td>
+                    <td class="text-success">${(row.can_cu || '').replace(/\n/g, '<br>')}</td>
+                    <td>${generateLinksHtml(row.links)}</td>
+                    <td class="text-center action-btns">
+                        <button class="btn btn-sm btn-outline-warning text-dark" onclick="editDataHD(${index})"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDataHD(${index})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                document.getElementById('tableBodyHD').appendChild(tr);
+                return true;
+            });
+        }
+
+        function renderTableBM() {
+            renderTableGeneric(appDataBieuMau, 'searchInputBM', 'tableBodyBM', 'tableFootBM', 'totalRowsBM', (row, index, searchTerm, stt) => {
+                const searchStr = removeVietnameseTones([row.bm_ma, row.bm_ten, row.bm_loai, row.bm_cancu, row.bm_ghichu, ...(row.links || [])].join(' ').toLowerCase());
+                if (searchTerm && !searchStr.includes(searchTerm)) return false;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-center fw-bold text-secondary">${stt}</td>
+                    <td class="fw-bold">${row.bm_ma || ''}</td>
+                    <td class="text-primary fw-bold">${row.bm_ten || ''}</td>
+                    <td><span class="badge border border-primary text-primary">${row.bm_loai || 'Khác'}</span></td>
+                    <td>${(row.bm_cancu || '').replace(/\n/g, '<br>')}</td>
+                    <td class="text-muted">${(row.bm_ghichu || '').replace(/\n/g, '<br>')}</td>
+                    <td>${generateLinksHtml(row.links)}</td>
+                    <td class="text-center action-btns">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editDataBM(${index})"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDataBM(${index})"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                document.getElementById('tableBodyBM').appendChild(tr);
+                return true;
+            });
+        }
+
+        // --- CÁC HÀM CRUD (VĂN BẢN & HỎI ĐÁP được rút gọn, tập trung logic BIỂU MẪU) ---
+        // VĂN BẢN
+        function openModalVB() { document.getElementById('dataFormVB').reset(); document.getElementById('editIndexVB').value = -1; document.getElementById('linksContainerVB').innerHTML = ''; addLinkInputVB(); modalVB.show(); }
+        function editDataVB(i) { const r = appData[i]; document.getElementById('editIndexVB').value = i; document.getElementById('f_so_ky_hieu').value = r.so_ky_hieu||''; document.getElementById('f_loai_vb').value = r.loai_vb||''; document.getElementById('f_co_quan').value = r.co_quan||''; document.getElementById('f_ngay_ban_hanh').value = r.ngay_ban_hanh||''; document.getElementById('f_ngay_hieu_luc').value = r.ngay_hieu_luc||''; document.getElementById('f_ngay_nhan').value = r.ngay_nhan||''; document.getElementById('f_nguoi_ky').value = r.nguoi_ky||''; document.getElementById('f_trich_yeu').value = r.trich_yeu||''; document.getElementById('linksContainerVB').innerHTML=''; if(r.links && r.links.length) r.links.forEach(l=>addLinkInputVB(l)); else addLinkInputVB(); modalVB.show(); }
+        async function saveFormVB() {
+            const so_ky_hieu = document.getElementById('f_so_ky_hieu').value.trim(); if(!so_ky_hieu) { alert("Nhập Số Ký Hiệu!"); return; }
+            const links = []; document.querySelectorAll('.link-input-vb').forEach(input => { if(input.value.trim()) links.push(input.value.trim()); });
+            const newData = { so_ky_hieu, loai_vb: document.getElementById('f_loai_vb').value, co_quan: document.getElementById('f_co_quan').value, ngay_ban_hanh: document.getElementById('f_ngay_ban_hanh').value, ngay_hieu_luc: document.getElementById('f_ngay_hieu_luc').value, ngay_nhan: document.getElementById('f_ngay_nhan').value, nguoi_ky: document.getElementById('f_nguoi_ky').value, trich_yeu: document.getElementById('f_trich_yeu').value, links };
+            const editIndex = document.getElementById('editIndexVB').value;
+            if (editIndex == -1) appData.push(newData); else appData[editIndex] = newData;
+            modalVB.hide(); renderTableVB(); if(ghConfig.token) await pushDataToGithub();
+        }
+        async function deleteDataVB(i) { if (confirm("Xóa văn bản này?")) { appData.splice(i, 1); renderTableVB(); if(ghConfig.token) await pushDataToGithub(); } }
+
+        // HỎI ĐÁP
+        function openModalHD() { document.getElementById('dataFormHD').reset(); document.getElementById('editIndexHD').value = -1; document.getElementById('linksContainerHD').innerHTML = ''; addLinkInputHD(); modalHD.show(); }
+        function editDataHD(i) { const r = appDataHoiDap[i]; document.getElementById('editIndexHD').value = i; document.getElementById('hd_ngay').value = r.ngay||''; document.getElementById('hd_phan_loai').value = r.phan_loai||'Thuế'; document.getElementById('hd_cau_hoi').value = r.cau_hoi||''; document.getElementById('hd_tra_loi').value = r.tra_loi||''; document.getElementById('hd_can_cu').value = r.can_cu||''; document.getElementById('linksContainerHD').innerHTML=''; if(r.links && r.links.length) r.links.forEach(l=>addLinkInputHD(l)); else addLinkInputHD(); modalHD.show(); }
+        async function saveFormHD() {
+            const cau_hoi = document.getElementById('hd_cau_hoi').value.trim(); if(!cau_hoi) { alert("Nhập Câu Hỏi!"); return; }
+            const links = []; document.querySelectorAll('.link-input-hd').forEach(input => { if(input.value.trim()) links.push(input.value.trim()); });
+            const newData = { ngay: document.getElementById('hd_ngay').value, phan_loai: document.getElementById('hd_phan_loai').value, cau_hoi, tra_loi: document.getElementById('hd_tra_loi').value, can_cu: document.getElementById('hd_can_cu').value, links };
+            const editIndex = document.getElementById('editIndexHD').value;
+            if (editIndex == -1) appDataHoiDap.push(newData); else appDataHoiDap[editIndex] = newData;
+            modalHD.hide(); renderTableHD(); if(ghConfig.token) await pushDataToGithub();
+        }
+        async function deleteDataHD(i) { if (confirm("Xóa hỏi đáp này?")) { appDataHoiDap.splice(i, 1); renderTableHD(); if(ghConfig.token) await pushDataToGithub(); } }
+
+        // BIỂU MẪU
+        function openModalBM() { 
+            document.getElementById('dataFormBM').reset(); 
+            document.getElementById('editIndexBM').value = -1; 
+            document.getElementById('linksContainerBM').innerHTML = ''; 
+            addLinkInputBM(); 
+            modalBM.show(); 
+        }
+
+        function editDataBM(i) { 
+            const r = appDataBieuMau[i]; 
+            document.getElementById('editIndexBM').value = i; 
+            document.getElementById('bm_ma').value = r.bm_ma || ''; 
+            document.getElementById('bm_ten').value = r.bm_ten || ''; 
+            document.getElementById('bm_loai').value = r.bm_loai || 'Thuế'; 
+            document.getElementById('bm_cancu').value = r.bm_cancu || ''; 
+            document.getElementById('bm_ghichu').value = r.bm_ghichu || ''; 
+            
+            document.getElementById('linksContainerBM').innerHTML = ''; 
+            if (r.links && r.links.length) r.links.forEach(l => addLinkInputBM(l)); 
+            else addLinkInputBM(); 
+            
+            modalBM.show(); 
+        }
+
+        async function saveFormBM() {
+            const bm_ten = document.getElementById('bm_ten').value.trim(); 
+            if(!bm_ten) { alert("Vui lòng nhập Tên Biểu Mẫu!"); return; }
+
+            const links = []; 
+            document.querySelectorAll('.link-input-bm').forEach(input => { 
+                if(input.value.trim()) links.push(input.value.trim()); 
+            });
+
+            const newData = { 
+                bm_ma: document.getElementById('bm_ma').value.trim(), 
+                bm_ten: bm_ten,
+                bm_loai: document.getElementById('bm_loai').value, 
+                bm_cancu: document.getElementById('bm_cancu').value.trim(), 
+                bm_ghichu: document.getElementById('bm_ghichu').value.trim(), 
+                links: links
+            };
+
+            const editIndex = document.getElementById('editIndexBM').value;
+            if (editIndex == -1) appDataBieuMau.push(newData); 
+            else appDataBieuMau[editIndex] = newData;
+            
+            modalBM.hide(); 
+            renderTableBM(); 
+            if(ghConfig.token) await pushDataToGithub(`Cập nhật biểu mẫu: ${bm_ten}`);
+        }
+
+        async function deleteDataBM(i) { 
+            if (confirm("Xác nhận xóa vĩnh viễn biểu mẫu này?")) { 
+                appDataBieuMau.splice(i, 1); 
+                renderTableBM(); 
+                if(ghConfig.token) await pushDataToGithub(`Xóa biểu mẫu`); 
+            } 
+        }
+
+        // --- BACKUP & IMPORT ---
+        function exportData() {
+            if(appData.length === 0 && appDataHoiDap.length === 0 && appDataBieuMau.length === 0) {
+                alert("Không có dữ liệu để xuất."); return;
+            }
+            const payload = { vanBan: appData, hoiDap: appDataHoiDap, bieuMau: appDataBieuMau };
+            const dataStr = JSON.stringify(payload, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            
+            const d = new Date();
+            const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            
+            a.href = url;
+            a.download = `backup_phapluat_toandien_${dateStr}.json`;
+            a.click(); URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            if (!ghConfig.token) { alert("Cài đặt Cloud trước khi Import!"); event.target.value = ''; return; }
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    const isOverride = confirm("GHI ĐÈ toàn bộ dữ liệu trên Cloud (OK) hay CỘNG DỒN (Cancel)?");
+                    
+                    if (Array.isArray(imported)) {
+                        if (isOverride) appData = imported; 
+                        else appData = appData.concat(imported);
+                    } else {
+                        if (isOverride) {
+                            appData = imported.vanBan || [];
+                            appDataHoiDap = imported.hoiDap || [];
+                            appDataBieuMau = imported.bieuMau || [];
+                        } else {
+                            appData = appData.concat(imported.vanBan || []);
+                            appDataHoiDap = appDataHoiDap.concat(imported.hoiDap || []);
+                            appDataBieuMau = appDataBieuMau.concat(imported.bieuMau || []);
+                        }
+                    }
+                    renderTableVB(); renderTableHD(); renderTableBM();
+                    await pushDataToGithub(`Import dữ liệu từ file ${file.name}`);
+                    alert("Import và đẩy lên Cloud thành công!");
+                } catch (error) { alert("Lỗi đọc file JSON: Định dạng không đúng!"); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

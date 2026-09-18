@@ -90,5 +90,16 @@
       ]
     }
   ],
-  "bieuMau": []
+  "bieuMau": [
+    {
+      "bm_ma": "",
+      "bm_ten": "Lao động",
+      "bm_loai": "Nhân Sự",
+      "bm_cancu": "",
+      "bm_ghichu": "",
+      "links": [
+        "https://docs.google.com/document/d/1UyHka2izM9RbyxZBKyFBxIj0-TrXbSZF/edit?usp=sharing&ouid=118326033472106172931&rtpof=true&sd=true"
+      ]
+    }
+  ]
 }

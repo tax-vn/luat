@@ -21,8 +21,6 @@
         .summary-row { background-color: #fff3cd !important; font-weight: bold; position: sticky; bottom: 0; z-index: 1; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
         .summary-row td { border-top: 2px solid #ffc107; }
         
-        #syncStatus { font-weight: bold; margin-left: 10px; }
-        
         /* Overlay Loading */
         #loadingOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 10000; display: none; align-items: center; justify-content: center; flex-direction: column; backdrop-filter: blur(5px); }
         
@@ -33,6 +31,13 @@
         .nav-tabs .nav-link { font-weight: bold; color: #495057; border-radius: 8px 8px 0 0; padding: 12px 20px; font-size: 1.1em; }
         .nav-tabs .nav-link.active { color: #198754; border-bottom-color: transparent; }
         .tab-content { background: transparent; }
+
+        /* ====================================================
+           PHÂN QUYỀN HIỂN THỊ (QUẢN TRỊ VIÊN vs KHÁCH)
+           ==================================================== */
+        .admin-only { display: none !important; }
+        body.is-admin .admin-only { display: inline-block !important; }
+        body.is-admin td.admin-only, body.is-admin th.admin-only { display: table-cell !important; }
     </style>
 </head>
 <body>
@@ -43,11 +48,13 @@
 
     <header class="app-header">
         <div class="container-fluid d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h2 class="mb-0 fw-bold"><i class="fas fa-gavel me-2"></i> Tra Cứu Pháp Luật & Biểu Mẫu</h2>
+            <h2 class="mb-0 fw-bold"><i class="fas fa-gavel me-2"></i> Hệ Thống Pháp Luật & Biểu Mẫu</h2>
             <div>
-                <span id="syncStatus" class="badge bg-secondary fs-6 me-2"><i class="fas fa-cloud-slash"></i> Chưa cấu hình</span>
+                <!-- Hiển thị Trạng thái Đăng nhập -->
+                <span id="adminBadge" class="badge bg-secondary fs-6 me-2"><i class="fas fa-eye"></i> Chế Độ Khách (Chỉ Đọc)</span>
+                
                 <button class="btn btn-light btn-sm fw-bold shadow-sm" onclick="openConfigModal()">
-                    <i class="fas fa-cog"></i> Cài Đặt Cloud
+                    <i class="fas fa-user-cog"></i> Cài Đặt Cloud (Admin)
                 </button>
             </div>
         </div>
@@ -58,7 +65,7 @@
         <ul class="nav nav-tabs mb-4" id="mainTabs" role="tablist">
           <li class="nav-item" role="presentation">
             <button class="nav-link active" id="vb-tab" data-bs-toggle="tab" data-bs-target="#vb-pane" type="button" role="tab" aria-selected="true">
-                <i class="fas fa-book-open me-2"></i>Văn Bản Quy Phạm Pháp Luật
+                <i class="fas fa-book-open me-2"></i>Văn Bản QPPL
             </button>
           </li>
           <li class="nav-item" role="presentation">
@@ -78,13 +85,13 @@
             <div class="tab-pane fade show active" id="vb-pane" role="tabpanel" tabindex="0">
                 <div class="row mb-3">
                     <div class="col-md-8 d-flex flex-wrap gap-2 mb-2 align-items-center">
-                        <button class="btn btn-success shadow-sm" onclick="openModalVB()"><i class="fas fa-plus me-1"></i> Thêm Văn Bản</button>
-                        <button class="btn btn-info text-white shadow-sm" onclick="manualSync()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
-                        <button class="btn btn-outline-secondary shadow-sm" onclick="exportData()"><i class="fas fa-download me-1"></i> Backup (JSON)</button>
-                        <label class="btn btn-outline-warning mb-0 text-dark fw-bold shadow-sm">
+                        <button class="btn btn-success shadow-sm admin-only" onclick="openModalVB()"><i class="fas fa-plus me-1"></i> Thêm Văn Bản</button>
+                        <button class="btn btn-outline-secondary shadow-sm admin-only" onclick="exportData()"><i class="fas fa-download me-1"></i> Backup (JSON)</button>
+                        <label class="btn btn-outline-warning mb-0 text-dark fw-bold shadow-sm admin-only">
                             <i class="fas fa-upload me-1"></i> Import Data
                             <input type="file" accept=".json" style="display: none;" onchange="importData(event)">
                         </label>
+                        <button class="btn btn-info text-white shadow-sm" onclick="loadData()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
                     </div>
                     <div class="col-md-4">
                         <div class="input-group shadow-sm">
@@ -108,11 +115,11 @@
                                 <th class="min-wrap">Ngày Nhận</th>
                                 <th style="min-width: 250px;">Trích Yếu</th>
                                 <th>Link Đính Kèm</th>
-                                <th width="90" class="text-center">Thao Tác</th>
+                                <th width="90" class="text-center admin-only">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody id="tableBodyVB">
-                            <tr><td colspan="11" class="text-center py-4 text-muted">Vui lòng đợi tải dữ liệu...</td></tr>
+                            <tr><td colspan="11" class="text-center py-4 text-muted">Đang lấy dữ liệu tự động...</td></tr>
                         </tbody>
                         <tfoot id="tableFootVB" style="display: none;">
                             <tr class="summary-row">
@@ -129,8 +136,8 @@
             <div class="tab-pane fade" id="hoidap-pane" role="tabpanel" tabindex="0">
                 <div class="row mb-3">
                     <div class="col-md-8 d-flex flex-wrap gap-2 mb-2 align-items-center">
-                        <button class="btn btn-warning shadow-sm fw-bold text-dark" onclick="openModalHD()"><i class="fas fa-plus me-1"></i> Thêm Hỏi Đáp Mới</button>
-                        <button class="btn btn-info text-white shadow-sm" onclick="manualSync()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
+                        <button class="btn btn-warning shadow-sm fw-bold text-dark admin-only" onclick="openModalHD()"><i class="fas fa-plus me-1"></i> Thêm Hỏi Đáp Mới</button>
+                        <button class="btn btn-info text-white shadow-sm" onclick="loadData()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
                     </div>
                     <div class="col-md-4">
                         <div class="input-group shadow-sm">
@@ -151,11 +158,11 @@
                                 <th style="min-width: 300px;">Nội Dung Trả Lời</th>
                                 <th style="min-width: 200px;">Căn Cứ Pháp Lý</th>
                                 <th>Link Đính Kèm</th>
-                                <th width="90" class="text-center">Thao Tác</th>
+                                <th width="90" class="text-center admin-only">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody id="tableBodyHD">
-                            <tr><td colspan="8" class="text-center py-4 text-muted">Vui lòng đợi tải dữ liệu...</td></tr>
+                            <tr><td colspan="8" class="text-center py-4 text-muted">Đang lấy dữ liệu tự động...</td></tr>
                         </tbody>
                         <tfoot id="tableFootHD" style="display: none;">
                             <tr class="summary-row">
@@ -172,8 +179,8 @@
             <div class="tab-pane fade" id="bieumau-pane" role="tabpanel" tabindex="0">
                 <div class="row mb-3">
                     <div class="col-md-8 d-flex flex-wrap gap-2 mb-2 align-items-center">
-                        <button class="btn btn-primary shadow-sm fw-bold" onclick="openModalBM()"><i class="fas fa-plus me-1"></i> Thêm Biểu Mẫu Mới</button>
-                        <button class="btn btn-info text-white shadow-sm" onclick="manualSync()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
+                        <button class="btn btn-primary shadow-sm fw-bold admin-only" onclick="openModalBM()"><i class="fas fa-plus me-1"></i> Thêm Biểu Mẫu Mới</button>
+                        <button class="btn btn-info text-white shadow-sm" onclick="loadData()"><i class="fas fa-sync-alt me-1"></i> Tải Lại Dữ Liệu</button>
                     </div>
                     <div class="col-md-4">
                         <div class="input-group shadow-sm">
@@ -194,11 +201,11 @@
                                 <th style="min-width: 200px;">Căn Cứ Ban Hành</th>
                                 <th style="min-width: 200px;">Ghi Chú</th>
                                 <th>Link Tải / Xem</th>
-                                <th width="90" class="text-center">Thao Tác</th>
+                                <th width="90" class="text-center admin-only">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody id="tableBodyBM">
-                            <tr><td colspan="8" class="text-center py-4 text-muted">Vui lòng đợi tải dữ liệu...</td></tr>
+                            <tr><td colspan="8" class="text-center py-4 text-muted">Đang lấy dữ liệu tự động...</td></tr>
                         </tbody>
                         <tfoot id="tableFootBM" style="display: none;">
                             <tr class="summary-row">
@@ -213,7 +220,7 @@
         </div>
     </div>
 
-    <!-- Modal Form (VĂN BẢN) -->
+    <!-- MODAL FORM VĂN BẢN -->
     <div class="modal fade" id="formModalVB" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
       <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
@@ -269,13 +276,13 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            <button type="button" class="btn btn-success" onclick="saveFormVB()"><i class="fas fa-save me-1"></i> Lưu Văn Bản</button>
+            <button type="button" class="btn btn-success" onclick="saveFormVB()"><i class="fas fa-save me-1"></i> Lưu Dữ Liệu Lên Cloud</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal Form (HỎI ĐÁP) -->
+    <!-- MODAL FORM HỎI ĐÁP -->
     <div class="modal fade" id="formModalHD" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
           <div class="modal-content">
@@ -324,13 +331,13 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-              <button type="button" class="btn btn-warning fw-bold text-dark" onclick="saveFormHD()"><i class="fas fa-save me-1"></i> Lưu Hỏi Đáp</button>
+              <button type="button" class="btn btn-warning fw-bold text-dark" onclick="saveFormHD()"><i class="fas fa-save me-1"></i> Lưu Hỏi Đáp Lên Cloud</button>
             </div>
           </div>
         </div>
     </div>
 
-    <!-- Modal Form (BIỂU MẪU) -->
+    <!-- MODAL FORM BIỂU MẪU -->
     <div class="modal fade" id="formModalBM" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
           <div class="modal-content">
@@ -362,11 +369,11 @@
                       </div>
                       <div class="col-md-12 mb-3">
                           <label class="form-label fw-semibold">Căn Cứ Ban Hành</label>
-                          <textarea class="form-control" id="bm_cancu" rows="2" placeholder="Biểu mẫu ban hành kèm theo Thông tư / Nghị định nào..."></textarea>
+                          <textarea class="form-control" id="bm_cancu" rows="2" placeholder="Ban hành kèm Thông tư / Nghị định nào..."></textarea>
                       </div>
                       <div class="col-md-12 mb-3">
                           <label class="form-label fw-semibold">Ghi Chú</label>
-                          <textarea class="form-control" id="bm_ghichu" rows="2" placeholder="Các lưu ý khi sử dụng biểu mẫu này..."></textarea>
+                          <textarea class="form-control" id="bm_ghichu" rows="2"></textarea>
                       </div>
                   </div>
                   <div class="row bg-white p-3 rounded shadow-sm mb-3">
@@ -380,44 +387,40 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-              <button type="button" class="btn btn-primary fw-bold" onclick="saveFormBM()"><i class="fas fa-save me-1"></i> Lưu Biểu Mẫu</button>
+              <button type="button" class="btn btn-primary fw-bold" onclick="saveFormBM()"><i class="fas fa-save me-1"></i> Lưu Biểu Mẫu Lên Cloud</button>
             </div>
           </div>
         </div>
     </div>
 
-    <!-- Modal Config GitHub -->
+    <!-- MODAL CÀI ĐẶT GITHUB (CHỈ YÊU CẦU TOKEN) -->
     <div class="modal fade" id="configModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header bg-dark text-white">
-              <h5 class="modal-title fw-bold"><i class="fab fa-github me-2"></i> Cài Đặt Kết Nối Cloud</h5>
+              <h5 class="modal-title fw-bold"><i class="fas fa-user-shield me-2"></i> Đăng Nhập Quản Trị Viên</h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="alert alert-info py-2" style="font-size: 0.9em;">
-                    <i class="fas fa-info-circle me-1"></i> Cấu hình được lưu an toàn trên trình duyệt máy tính của bạn.
+                <div class="alert alert-warning py-2" style="font-size: 0.9em;">
+                    <i class="fas fa-info-circle me-1"></i> <strong>Chỉ dành cho Admin!</strong> Nhập mã Token (PAT) để mở khóa các tính năng Thêm/Sửa/Xóa dữ liệu.
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Tên Tài Khoản (Owner) <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="gh_owner" required>
+                    <label class="form-label fw-semibold">Tên Tài Khoản (Owner)</label>
+                    <input type="text" class="form-control bg-light text-muted" id="gh_owner" value="tax-vn" readonly>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Tên Repo <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="gh_repo" required>
+                    <label class="form-label fw-semibold">Tên Repo</label>
+                    <input type="text" class="form-control bg-light text-muted" id="gh_repo" value="luat" readonly>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Personal Access Token (PAT) <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control" id="gh_token" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Tên File Dữ Liệu</label>
-                    <input type="text" class="form-control bg-light" id="gh_file" value="data_phapluat.json" readonly>
+                    <label class="form-label fw-semibold text-danger">Mã Personal Access Token (PAT) <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control border-danger" id="gh_token" placeholder="Nhập Token vào đây. Để trống nếu muốn đăng xuất">
                 </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-              <button type="button" class="btn btn-primary" onclick="saveConfig()"><i class="fas fa-check me-1"></i> Lưu & Tải Dữ Liệu</button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+              <button type="button" class="btn btn-primary" onclick="saveConfig()"><i class="fas fa-sign-in-alt me-1"></i> Xác Nhận</button>
             </div>
           </div>
         </div>
@@ -432,7 +435,9 @@
         let appDataBieuMau = []; // Biểu Mẫu
         
         let modalVB, modalHD, modalBM, configModal;
-        let ghConfig = { owner: '', repo: '', token: '', path: 'data_phapluat.json', sha: '' };
+        
+        // --- CẤU HÌNH CỨNG MẶC ĐỊNH CHO TẤT CẢ MỌI NGƯỜI ---
+        let ghConfig = { owner: 'tax-vn', repo: 'luat', token: '', path: 'data_phapluat.json', sha: '' };
 
         window.onload = function() {
             modalVB = new bootstrap.Modal(document.getElementById('formModalVB'));
@@ -440,40 +445,20 @@
             modalBM = new bootstrap.Modal(document.getElementById('formModalBM'));
             configModal = new bootstrap.Modal(document.getElementById('configModal'));
             
-            loadConfigFromLocal();
-            if (ghConfig.token && ghConfig.owner && ghConfig.repo) {
-                fetchDataFromGithub();
-            } else {
-                setStatus("missing");
-                renderTableVB(); renderTableHD(); renderTableBM();
-            }
+            checkAdminStatus();
+            loadData(); // Tự động load dữ liệu ngay khi vào web
         };
 
-        function showLoading(text = "Đang đồng bộ...") {
+        function showLoading(text = "Đang xử lý...") {
             document.getElementById('loadingText').innerText = text;
             document.getElementById('loadingOverlay').style.display = 'flex';
         }
         function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-        function setStatus(status) {
-            const el = document.getElementById('syncStatus');
-            el.className = 'badge fs-6 ';
-            if (status === 'success') {
-                el.classList.add('bg-success'); el.innerHTML = '<i class="fas fa-check-circle"></i> Đã đồng bộ';
-            } else if (status === 'error') {
-                el.classList.add('bg-danger'); el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Lỗi đồng bộ';
-            } else if (status === 'missing') {
-                el.classList.add('bg-secondary'); el.innerHTML = '<i class="fas fa-cloud-slash"></i> Chưa cấu hình';
-            } else if (status === 'syncing') {
-                el.classList.add('bg-info', 'text-dark'); el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tải...';
-            }
-        }
-
         function removeVietnameseTones(str) {
             if (!str) return '';
             return str.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
         }
-
         function formatDateDisplay(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
@@ -481,7 +466,7 @@
             return dateStr;
         }
 
-        // Add Dynamic Link Inputs
+        // Tạo Link Input
         function addLinkInput(containerId, inputClass, value = '') {
             const container = document.getElementById(containerId);
             const div = document.createElement('div');
@@ -497,71 +482,122 @@
         function addLinkInputHD(val='') { addLinkInput('linksContainerHD', 'link-input-hd', val); }
         function addLinkInputBM(val='') { addLinkInput('linksContainerBM', 'link-input-bm', val); }
 
-        function loadConfigFromLocal() {
+        // --- KIỂM TRA QUYỀN ADMIN TỪ LOCAL STORAGE ---
+        function checkAdminStatus() {
             const saved = localStorage.getItem('ghSyncConfigPhapLuat');
-            if (saved) { ghConfig = { ...ghConfig, ...JSON.parse(saved) }; }
-            document.getElementById('gh_owner').value = ghConfig.owner;
-            document.getElementById('gh_repo').value = ghConfig.repo;
+            if (saved) { 
+                const parsed = JSON.parse(saved);
+                ghConfig.token = parsed.token || ''; 
+            }
+            
+            // Gán lại vào Form (Owner & Repo đã fix cứng ở HTML)
             document.getElementById('gh_token').value = ghConfig.token;
+
+            const badge = document.getElementById('adminBadge');
+            if (ghConfig.token) {
+                // Là Admin => Mở khóa nút Thêm/Sửa/Xóa
+                document.body.classList.add('is-admin');
+                badge.innerHTML = '<i class="fas fa-user-shield"></i> Chế Độ Quản Trị (Đã mở khóa)';
+                badge.className = 'badge bg-success fs-6 me-2';
+            } else {
+                // Là Khách => Ẩn mọi nút Thao tác
+                document.body.classList.remove('is-admin');
+                badge.innerHTML = '<i class="fas fa-eye"></i> Chế Độ Khách (Chỉ Đọc)';
+                badge.className = 'badge bg-secondary fs-6 me-2';
+            }
         }
 
-        function openConfigModal() { loadConfigFromLocal(); configModal.show(); }
+        function openConfigModal() { checkAdminStatus(); configModal.show(); }
 
         function saveConfig() {
-            const owner = document.getElementById('gh_owner').value.trim();
-            const repo = document.getElementById('gh_repo').value.trim();
             const token = document.getElementById('gh_token').value.trim();
-
-            if (!owner || !repo || !token) { alert("Vui lòng điền đủ Tên tài khoản, Repo và Token!"); return; }
-
-            ghConfig.owner = owner; ghConfig.repo = repo; ghConfig.token = token;
-            localStorage.setItem('ghSyncConfigPhapLuat', JSON.stringify({ owner, repo, token }));
-            configModal.hide(); fetchDataFromGithub();
+            ghConfig.token = token;
+            
+            // Chỉ lưu Token vào máy người dùng
+            localStorage.setItem('ghSyncConfigPhapLuat', JSON.stringify({ token: token }));
+            
+            checkAdminStatus();
+            configModal.hide();
+            
+            if (token) { loadData(); } // Gọi lại API để xác thực Token và lấy mã SHA
         }
 
-        async function fetchDataFromGithub() {
-            setStatus("syncing"); showLoading("Đang lấy dữ liệu từ Cloud...");
-            const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
-            try {
-                const response = await fetch(url, {
-                    headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json' },
-                    cache: 'no-store'
-                });
+        // --- TẢI DỮ LIỆU THÔNG MINH CHO CẢ KHÁCH VÀ ADMIN ---
+        async function loadData() {
+            showLoading("Đang kết nối dữ liệu...");
+            let isLoaded = false;
 
-                if (response.status === 404) {
-                    if (confirm("File dữ liệu chưa tồn tại! Khởi tạo file trống mới?")) {
-                        appData = []; appDataHoiDap = []; appDataBieuMau = [];
-                        await pushDataToGithub("Khởi tạo file dữ liệu", true);
-                    } else {
-                        hideLoading(); setStatus("error"); renderTableVB(); renderTableHD(); renderTableBM();
+            // 1. Dành cho Admin (Có Token): Lấy qua API để lấy được biến 'SHA' cho việc lưu đè
+            if (ghConfig.token) {
+                isLoaded = await fetchFromGithubAPI();
+            } 
+            
+            // 2. Dành cho Khách: Đọc trực tiếp từ file tĩnh trên trình duyệt (Cực nhanh & Không bị giới hạn API)
+            if (!isLoaded) {
+                try {
+                    // Lấy tương đối theo host hiện tại của Github Pages
+                    const res = await fetch(ghConfig.path + '?t=' + new Date().getTime());
+                    if (res.ok) {
+                        const parsedData = await res.json();
+                        parseRawData(parsedData);
+                        isLoaded = true;
                     }
-                    return;
-                }
-                if (!response.ok) throw new Error(`Mã lỗi: ${response.status}`);
+                } catch(e) { console.log("Không thể fetch trực tiếp nội bộ."); }
+            }
+
+            // 3. Dự phòng cho khách chạy local: Gọi API ẩn danh
+            if (!isLoaded) {
+                isLoaded = await fetchFromGithubAPI();
+            }
+
+            if (!isLoaded) {
+                appData = []; appDataHoiDap = []; appDataBieuMau = [];
+            }
+
+            renderTableVB(); renderTableHD(); renderTableBM();
+            hideLoading();
+        }
+
+        async function fetchFromGithubAPI() {
+            const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
+            const headers = { 'Accept': 'application/vnd.github.v3+json' };
+            if (ghConfig.token) headers['Authorization'] = `token ${ghConfig.token}`;
+
+            try {
+                const response = await fetch(url, { headers: headers, cache: 'no-store' });
+                if (response.status === 404) return false;
+                if (!response.ok) throw new Error("Lỗi kết nối Github: " + response.status);
 
                 const data = await response.json();
                 ghConfig.sha = data.sha; 
+                
                 const decodedText = decodeURIComponent(escape(atob(data.content)));
-                const parsedData = JSON.parse(decodedText);
-                
-                if (Array.isArray(parsedData)) {
-                    appData = parsedData; appDataHoiDap = []; appDataBieuMau = [];
-                } else {
-                    appData = parsedData.vanBan || [];
-                    appDataHoiDap = parsedData.hoiDap || [];
-                    appDataBieuMau = parsedData.bieuMau || [];
-                }
-                
-                setStatus("success");
-                renderTableVB(); renderTableHD(); renderTableBM();
+                parseRawData(JSON.parse(decodedText));
+                return true;
             } catch (error) {
-                console.error(error); setStatus("error"); alert("Lỗi tải dữ liệu: " + error.message);
-                renderTableVB(); renderTableHD(); renderTableBM();
-            } finally { hideLoading(); }
+                console.error(error);
+                return false;
+            }
         }
 
-        async function pushDataToGithub(commitMessage = "Cập nhật dữ liệu", isNewFile = false) {
-            setStatus("syncing"); showLoading("Đang lưu dữ liệu lên Cloud...");
+        function parseRawData(parsedData) {
+            if (Array.isArray(parsedData)) {
+                appData = parsedData; appDataHoiDap = []; appDataBieuMau = [];
+            } else {
+                appData = parsedData.vanBan || [];
+                appDataHoiDap = parsedData.hoiDap || [];
+                appDataBieuMau = parsedData.bieuMau || [];
+            }
+        }
+
+        // --- ĐẨY DỮ LIỆU LÊN GITHUB (CHỈ DÀNH CHO ADMIN) ---
+        async function pushDataToGithub(commitMessage = "Cập nhật dữ liệu") {
+            if (!ghConfig.token) {
+                alert("Bạn phải đăng nhập (Cài Đặt Cloud) để thực hiện thao tác này!");
+                openConfigModal(); return;
+            }
+
+            showLoading("Đang lưu dữ liệu lên Cloud...");
             const url = `https://api.github.com/repos/${ghConfig.owner}/${ghConfig.repo}/contents/${ghConfig.path}`;
             
             const payload = { vanBan: appData, hoiDap: appDataHoiDap, bieuMau: appDataBieuMau };
@@ -569,7 +605,7 @@
             const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
 
             const body = { message: commitMessage, content: encodedContent };
-            if (!isNewFile && ghConfig.sha) body.sha = ghConfig.sha;
+            if (ghConfig.sha) body.sha = ghConfig.sha;
 
             try {
                 const response = await fetch(url, {
@@ -577,21 +613,21 @@
                     headers: { 'Authorization': `token ${ghConfig.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                if (!response.ok) throw new Error(`Lỗi cập nhật (Mã lỗi: ${response.status})`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) alert("Kho lưu trữ không tồn tại hoặc Token sai quyền!");
+                    else if (response.status === 409 || response.status === 422) alert("Có xung đột phiên bản. Hãy bấm Tải Lại Dữ Liệu trước khi lưu.");
+                    throw new Error(`Lỗi cập nhật (Mã: ${response.status})`);
+                }
                 const responseData = await response.json();
                 ghConfig.sha = responseData.content.sha;
-                setStatus("success");
             } catch (error) {
-                console.error(error); setStatus("error"); alert("Lỗi lưu dữ liệu: " + error.message);
+                alert("Lỗi lưu dữ liệu: " + error.message);
             } finally { hideLoading(); }
         }
 
-        function manualSync() {
-            if (!ghConfig.token) { alert("Vui lòng cấu hình Cloud trước!"); openConfigModal(); return; }
-            fetchDataFromGithub();
-        }
 
-        // --- RENDER TABLES ---
+        // --- HIỂN THỊ BẢNG (RENDER TABLES) ---
         function generateLinksHtml(links) {
             if (!links || links.length === 0) return '';
             return links.map(l => `<a href="${l}" target="_blank" class="d-block truncate-link text-decoration-none mb-1"><i class="fas fa-external-link-alt me-1"></i>Mở Link</a>`).join('');
@@ -606,7 +642,7 @@
             const searchTerm = removeVietnameseTones(rawSearch.toLowerCase());
             
             if(dataArray.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="12" class="text-center text-danger fw-bold py-4">Chưa có dữ liệu.</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="12" class="text-center text-danger fw-bold py-4">Chưa có dữ liệu nào trên hệ thống.</td></tr>`;
                  tfoot.style.display = 'none'; return;
             }
 
@@ -639,7 +675,7 @@
                     <td>${formatDateDisplay(row.ngay_nhan)}</td>
                     <td>${row.trich_yeu || ''}</td>
                     <td>${generateLinksHtml(row.links)}</td>
-                    <td class="text-center action-btns">
+                    <td class="text-center action-btns admin-only">
                         <button class="btn btn-sm btn-outline-primary" onclick="editDataVB(${index})"><i class="fas fa-pen"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="deleteDataVB(${index})"><i class="fas fa-trash"></i></button>
                     </td>
@@ -668,7 +704,7 @@
                     <td>${(row.tra_loi || '').replace(/\n/g, '<br>')}</td>
                     <td class="text-success">${(row.can_cu || '').replace(/\n/g, '<br>')}</td>
                     <td>${generateLinksHtml(row.links)}</td>
-                    <td class="text-center action-btns">
+                    <td class="text-center action-btns admin-only">
                         <button class="btn btn-sm btn-outline-warning text-dark" onclick="editDataHD(${index})"><i class="fas fa-pen"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="deleteDataHD(${index})"><i class="fas fa-trash"></i></button>
                     </td>
@@ -692,7 +728,7 @@
                     <td>${(row.bm_cancu || '').replace(/\n/g, '<br>')}</td>
                     <td class="text-muted">${(row.bm_ghichu || '').replace(/\n/g, '<br>')}</td>
                     <td>${generateLinksHtml(row.links)}</td>
-                    <td class="text-center action-btns">
+                    <td class="text-center action-btns admin-only">
                         <button class="btn btn-sm btn-outline-primary" onclick="editDataBM(${index})"><i class="fas fa-pen"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="deleteDataBM(${index})"><i class="fas fa-trash"></i></button>
                     </td>
@@ -702,8 +738,7 @@
             });
         }
 
-        // --- CÁC HÀM CRUD (VĂN BẢN & HỎI ĐÁP được rút gọn, tập trung logic BIỂU MẪU) ---
-        // VĂN BẢN
+        // --- CÁC HÀM CRUD GỌI LƯU LÊN CLOUD ---
         function openModalVB() { document.getElementById('dataFormVB').reset(); document.getElementById('editIndexVB').value = -1; document.getElementById('linksContainerVB').innerHTML = ''; addLinkInputVB(); modalVB.show(); }
         function editDataVB(i) { const r = appData[i]; document.getElementById('editIndexVB').value = i; document.getElementById('f_so_ky_hieu').value = r.so_ky_hieu||''; document.getElementById('f_loai_vb').value = r.loai_vb||''; document.getElementById('f_co_quan').value = r.co_quan||''; document.getElementById('f_ngay_ban_hanh').value = r.ngay_ban_hanh||''; document.getElementById('f_ngay_hieu_luc').value = r.ngay_hieu_luc||''; document.getElementById('f_ngay_nhan').value = r.ngay_nhan||''; document.getElementById('f_nguoi_ky').value = r.nguoi_ky||''; document.getElementById('f_trich_yeu').value = r.trich_yeu||''; document.getElementById('linksContainerVB').innerHTML=''; if(r.links && r.links.length) r.links.forEach(l=>addLinkInputVB(l)); else addLinkInputVB(); modalVB.show(); }
         async function saveFormVB() {
@@ -712,11 +747,10 @@
             const newData = { so_ky_hieu, loai_vb: document.getElementById('f_loai_vb').value, co_quan: document.getElementById('f_co_quan').value, ngay_ban_hanh: document.getElementById('f_ngay_ban_hanh').value, ngay_hieu_luc: document.getElementById('f_ngay_hieu_luc').value, ngay_nhan: document.getElementById('f_ngay_nhan').value, nguoi_ky: document.getElementById('f_nguoi_ky').value, trich_yeu: document.getElementById('f_trich_yeu').value, links };
             const editIndex = document.getElementById('editIndexVB').value;
             if (editIndex == -1) appData.push(newData); else appData[editIndex] = newData;
-            modalVB.hide(); renderTableVB(); if(ghConfig.token) await pushDataToGithub();
+            modalVB.hide(); renderTableVB(); await pushDataToGithub();
         }
-        async function deleteDataVB(i) { if (confirm("Xóa văn bản này?")) { appData.splice(i, 1); renderTableVB(); if(ghConfig.token) await pushDataToGithub(); } }
+        async function deleteDataVB(i) { if (confirm("Xóa văn bản này?")) { appData.splice(i, 1); renderTableVB(); await pushDataToGithub(); } }
 
-        // HỎI ĐÁP
         function openModalHD() { document.getElementById('dataFormHD').reset(); document.getElementById('editIndexHD').value = -1; document.getElementById('linksContainerHD').innerHTML = ''; addLinkInputHD(); modalHD.show(); }
         function editDataHD(i) { const r = appDataHoiDap[i]; document.getElementById('editIndexHD').value = i; document.getElementById('hd_ngay').value = r.ngay||''; document.getElementById('hd_phan_loai').value = r.phan_loai||'Thuế'; document.getElementById('hd_cau_hoi').value = r.cau_hoi||''; document.getElementById('hd_tra_loi').value = r.tra_loi||''; document.getElementById('hd_can_cu').value = r.can_cu||''; document.getElementById('linksContainerHD').innerHTML=''; if(r.links && r.links.length) r.links.forEach(l=>addLinkInputHD(l)); else addLinkInputHD(); modalHD.show(); }
         async function saveFormHD() {
@@ -725,69 +759,21 @@
             const newData = { ngay: document.getElementById('hd_ngay').value, phan_loai: document.getElementById('hd_phan_loai').value, cau_hoi, tra_loi: document.getElementById('hd_tra_loi').value, can_cu: document.getElementById('hd_can_cu').value, links };
             const editIndex = document.getElementById('editIndexHD').value;
             if (editIndex == -1) appDataHoiDap.push(newData); else appDataHoiDap[editIndex] = newData;
-            modalHD.hide(); renderTableHD(); if(ghConfig.token) await pushDataToGithub();
+            modalHD.hide(); renderTableHD(); await pushDataToGithub();
         }
-        async function deleteDataHD(i) { if (confirm("Xóa hỏi đáp này?")) { appDataHoiDap.splice(i, 1); renderTableHD(); if(ghConfig.token) await pushDataToGithub(); } }
+        async function deleteDataHD(i) { if (confirm("Xóa hỏi đáp này?")) { appDataHoiDap.splice(i, 1); renderTableHD(); await pushDataToGithub(); } }
 
-        // BIỂU MẪU
-        function openModalBM() { 
-            document.getElementById('dataFormBM').reset(); 
-            document.getElementById('editIndexBM').value = -1; 
-            document.getElementById('linksContainerBM').innerHTML = ''; 
-            addLinkInputBM(); 
-            modalBM.show(); 
-        }
-
-        function editDataBM(i) { 
-            const r = appDataBieuMau[i]; 
-            document.getElementById('editIndexBM').value = i; 
-            document.getElementById('bm_ma').value = r.bm_ma || ''; 
-            document.getElementById('bm_ten').value = r.bm_ten || ''; 
-            document.getElementById('bm_loai').value = r.bm_loai || 'Thuế'; 
-            document.getElementById('bm_cancu').value = r.bm_cancu || ''; 
-            document.getElementById('bm_ghichu').value = r.bm_ghichu || ''; 
-            
-            document.getElementById('linksContainerBM').innerHTML = ''; 
-            if (r.links && r.links.length) r.links.forEach(l => addLinkInputBM(l)); 
-            else addLinkInputBM(); 
-            
-            modalBM.show(); 
-        }
-
+        function openModalBM() { document.getElementById('dataFormBM').reset(); document.getElementById('editIndexBM').value = -1; document.getElementById('linksContainerBM').innerHTML = ''; addLinkInputBM(); modalBM.show(); }
+        function editDataBM(i) { const r = appDataBieuMau[i]; document.getElementById('editIndexBM').value = i; document.getElementById('bm_ma').value = r.bm_ma || ''; document.getElementById('bm_ten').value = r.bm_ten || ''; document.getElementById('bm_loai').value = r.bm_loai || 'Thuế'; document.getElementById('bm_cancu').value = r.bm_cancu || ''; document.getElementById('bm_ghichu').value = r.bm_ghichu || ''; document.getElementById('linksContainerBM').innerHTML = ''; if (r.links && r.links.length) r.links.forEach(l => addLinkInputBM(l)); else addLinkInputBM(); modalBM.show(); }
         async function saveFormBM() {
-            const bm_ten = document.getElementById('bm_ten').value.trim(); 
-            if(!bm_ten) { alert("Vui lòng nhập Tên Biểu Mẫu!"); return; }
-
-            const links = []; 
-            document.querySelectorAll('.link-input-bm').forEach(input => { 
-                if(input.value.trim()) links.push(input.value.trim()); 
-            });
-
-            const newData = { 
-                bm_ma: document.getElementById('bm_ma').value.trim(), 
-                bm_ten: bm_ten,
-                bm_loai: document.getElementById('bm_loai').value, 
-                bm_cancu: document.getElementById('bm_cancu').value.trim(), 
-                bm_ghichu: document.getElementById('bm_ghichu').value.trim(), 
-                links: links
-            };
-
+            const bm_ten = document.getElementById('bm_ten').value.trim(); if(!bm_ten) { alert("Nhập Tên Biểu Mẫu!"); return; }
+            const links = []; document.querySelectorAll('.link-input-bm').forEach(input => { if(input.value.trim()) links.push(input.value.trim()); });
+            const newData = { bm_ma: document.getElementById('bm_ma').value.trim(), bm_ten: bm_ten, bm_loai: document.getElementById('bm_loai').value, bm_cancu: document.getElementById('bm_cancu').value.trim(), bm_ghichu: document.getElementById('bm_ghichu').value.trim(), links: links };
             const editIndex = document.getElementById('editIndexBM').value;
-            if (editIndex == -1) appDataBieuMau.push(newData); 
-            else appDataBieuMau[editIndex] = newData;
-            
-            modalBM.hide(); 
-            renderTableBM(); 
-            if(ghConfig.token) await pushDataToGithub(`Cập nhật biểu mẫu: ${bm_ten}`);
+            if (editIndex == -1) appDataBieuMau.push(newData); else appDataBieuMau[editIndex] = newData;
+            modalBM.hide(); renderTableBM(); await pushDataToGithub();
         }
-
-        async function deleteDataBM(i) { 
-            if (confirm("Xác nhận xóa vĩnh viễn biểu mẫu này?")) { 
-                appDataBieuMau.splice(i, 1); 
-                renderTableBM(); 
-                if(ghConfig.token) await pushDataToGithub(`Xóa biểu mẫu`); 
-            } 
-        }
+        async function deleteDataBM(i) { if (confirm("Xóa biểu mẫu này?")) { appDataBieuMau.splice(i, 1); renderTableBM(); await pushDataToGithub(); } }
 
         // --- BACKUP & IMPORT ---
         function exportData() {
@@ -804,12 +790,12 @@
             const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
             
             a.href = url;
-            a.download = `backup_phapluat_toandien_${dateStr}.json`;
+            a.download = `backup_phapluat_${dateStr}.json`;
             a.click(); URL.revokeObjectURL(url);
         }
 
         function importData(event) {
-            if (!ghConfig.token) { alert("Cài đặt Cloud trước khi Import!"); event.target.value = ''; return; }
+            if (!ghConfig.token) { alert("Phải đăng nhập Admin (Cài đặt Cloud) mới Import được!"); event.target.value = ''; return; }
             const file = event.target.files[0];
             if (!file) return;
 
@@ -818,25 +804,19 @@
                 try {
                     const imported = JSON.parse(e.target.result);
                     const isOverride = confirm("GHI ĐÈ toàn bộ dữ liệu trên Cloud (OK) hay CỘNG DỒN (Cancel)?");
-                    
                     if (Array.isArray(imported)) {
-                        if (isOverride) appData = imported; 
-                        else appData = appData.concat(imported);
+                        if (isOverride) appData = imported; else appData = appData.concat(imported);
                     } else {
                         if (isOverride) {
-                            appData = imported.vanBan || [];
-                            appDataHoiDap = imported.hoiDap || [];
-                            appDataBieuMau = imported.bieuMau || [];
+                            appData = imported.vanBan || []; appDataHoiDap = imported.hoiDap || []; appDataBieuMau = imported.bieuMau || [];
                         } else {
-                            appData = appData.concat(imported.vanBan || []);
-                            appDataHoiDap = appDataHoiDap.concat(imported.hoiDap || []);
-                            appDataBieuMau = appDataBieuMau.concat(imported.bieuMau || []);
+                            appData = appData.concat(imported.vanBan || []); appDataHoiDap = appDataHoiDap.concat(imported.hoiDap || []); appDataBieuMau = appDataBieuMau.concat(imported.bieuMau || []);
                         }
                     }
                     renderTableVB(); renderTableHD(); renderTableBM();
-                    await pushDataToGithub(`Import dữ liệu từ file ${file.name}`);
-                    alert("Import và đẩy lên Cloud thành công!");
-                } catch (error) { alert("Lỗi đọc file JSON: Định dạng không đúng!"); }
+                    await pushDataToGithub();
+                    alert("Import thành công!");
+                } catch (error) { alert("File JSON không hợp lệ!"); }
                 event.target.value = '';
             };
             reader.readAsText(file);
